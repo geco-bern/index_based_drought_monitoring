@@ -84,7 +84,8 @@
 
       
 
-      </header><div class="row">
+      </header><script src="model_evaluation_VI_files/core-js-2.5.3/shim.min.js"></script><script src="model_evaluation_VI_files/react-18.2.0/react.min.js"></script><script src="model_evaluation_VI_files/react-18.2.0/react-dom.min.js"></script><script src="model_evaluation_VI_files/reactwidget-1.0.0/react-tools.js"></script><script src="model_evaluation_VI_files/htmlwidgets-1.6.4/htmlwidgets.js"></script><link href="model_evaluation_VI_files/reactable-0.4.4/reactable.css" rel="stylesheet">
+<script src="model_evaluation_VI_files/reactable-binding-0.4.4/reactable.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Model evaluation VI</h1>
@@ -102,7 +103,33 @@ Hufkens</h4>
     
 <p>Comparing VI versus fLUE</p>
 <p><img src="model_evaluation_VI_files/figure-html/unnamed-chunk-2-1.png" width="700"></p>
-  </div>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rank_vi</span> <span class="op">&lt;-</span> <span class="va">rsq</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">ungroup</span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">group_by</span><span class="op">(</span><span class="va">cluster</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">mutate</span><span class="op">(</span></span>
+<span>    rsq_flue <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">rsq</span><span class="op">[</span><span class="va">index</span> <span class="op">==</span> <span class="st">"flue_predicted"</span><span class="op">]</span>, <span class="fl">0.5</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
+<span>    <span class="op">!</span><span class="va">flue</span>,</span>
+<span>    <span class="va">rsq</span> <span class="op">&gt;</span> <span class="va">rsq_flue</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">select</span><span class="op">(</span></span>
+<span>    <span class="va">index</span>,</span>
+<span>    <span class="va">rsq</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">group_by</span><span class="op">(</span><span class="va">cluster</span>, <span class="va">index</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">summarize</span><span class="op">(</span></span>
+<span>    rsq <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">rsq</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Adding missing grouping variables: `cluster`</span></span>
+<span><span class="co">## `summarise()` has grouped output by 'cluster'. You can override using the</span></span>
+<span><span class="co">## `.groups` argument.</span></span></code></pre>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">reactable</span><span class="fu">::</span><span class="fu"><a href="https://glin.github.io/reactable/reference/reactable.html" class="external-link">reactable</a></span><span class="op">(</span><span class="va">rank_vi</span><span class="op">)</span></span></code></pre></div>
+<div class="reactable html-widget html-fill-item" id="htmlwidget-cdc38a9a5379cb6d66d8" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-cdc38a9a5379cb6d66d8">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"cluster":["cDD","cGR","cGR","cGR","cGR","cGR","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cLS","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA","cNA"],"index":["SI","AFRI2100","IPVI","NDVI","NormR","TVI","AFRI2100","AVI","CIG","CVI","FCVI","GBNDVI","GEMI","GNDVI","GOSAVI","GRNDVI","GRVI","GSAVI","GVMI","IKAW","MNDVI","MRBVI","NRFIg","NRFIr","NormG","NormNIR","RCC","SARVI","SI","SR2","AFRI2100","BNDVI","CIG","CVI","DSWI1","GARI","GBNDVI","GNDVI","GOSAVI","GRNDVI","GRVI","GSAVI","GVMI","IKAW","IPVI","MNDVI","MRBVI","NDVI","NLI","NRFIg","NRFIr","NormG","NormNIR","NormR","SI","SR2","TVI"],"rsq":[0.821346673762222,0.61347413355943,0.59687070343758,0.59687070343758,0.589508891799626,0.616759144837532,0.266008899980392,0.262280096848118,0.387863512787225,0.342014790573091,0.228216995776809,0.405429137823903,0.248198794078124,0.380551516508516,0.375456353382484,0.400572773430908,0.387863512787225,0.325587892779078,0.265934898670675,0.30799871378058,0.271780067034305,0.341393451528249,0.398855005115048,0.300883454883577,0.350757055937116,0.400572773430908,0.267905766326156,0.208166216086869,0.332160143765168,0.387863512787225,0.107324215036516,0.0926434154671936,0.146268288667757,0.0926231433014416,0.112289316536521,0.0932421371539167,0.140103371787927,0.124593339763728,0.127171235366066,0.149018881996433,0.146268288667757,0.131099359191374,0.118698940462177,0.0908200770448614,0.0952215959121146,0.116169969135831,0.0920529056042197,0.0952215959121145,0.0906016649447551,0.12281042152801,0.150144671197839,0.105485547890061,0.149018881996433,0.0886671132758676,0.152935783663435,0.146268288667757,0.0974755864424339]},"columns":[{"id":"cluster","name":"cluster","type":"character"},{"id":"index","name":"index","type":"character"},{"id":"rsq","name":"rsq","type":"numeric"}],"dataKey":"9c2b2f1c4f1618d809cbb0359169d0dc"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
 
