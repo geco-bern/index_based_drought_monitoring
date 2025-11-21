@@ -22,6 +22,7 @@ library(FluxDataKit)
 source("R/read_ml_data.R")
 
 ## Read data -------------------------------------------------------------------
+# created with data-raw/02_compose_machine_learning_data.R
 df <- read_rds(here("data/machine_learning_training_data.rds"))
 
 # vis_miss(df, warn_large_data = FALSE)
@@ -112,6 +113,7 @@ model <- train(
 saveRDS(model, file = here("data/model_rf.rds"))
 
 # inspect out-of-sample validation results visually
+model <- readRDS(file = here("data/model_rf.rds"))
 preds <- model$pred
 preds$site <- df$site[preds$rowIndex]
 
