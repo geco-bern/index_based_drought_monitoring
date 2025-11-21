@@ -16,7 +16,6 @@ site_info <- read.csv("data/site_info.csv") |>
     sitename %in% unique(df$site)
   )
 
-
 # create a base query / locations + time frame
 site <- site_info |>
   select(
