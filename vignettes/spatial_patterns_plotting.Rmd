@@ -1,0 +1,704 @@
+---
+title: "Spatial_patterns"
+author: "Yousra"
+date: "2025-10-12"
+output: html_document
+---
+
+```{r}
+#load packages 
+library(terra)
+library(dplyr)
+library(patchwork)
+#library(scico)
+library(raster)
+library(tidymodels)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(tidyterra)
+library(sf)
+library(here)
+```
+
+```{r}
+#read rasters
+out_dir <- here("/home/yousra/index_based_physiological_drought/data-raw/fLUE_pred_rast/")
+
+# List all .tif files
+raster_files <- list.files(out_dir, pattern = "\\.tif$", full.names = TRUE)
+
+# Read rasters
+delta_rasters <- lapply(raster_files, rast)
+
+# Assign names based on filenames 
+names(delta_rasters) <- tools::file_path_sans_ext(basename(raster_files))
+# Check
+names(delta_rasters)
+
+```
+
+# all figures without rescale 
+rescale() transforms values between 0 and 1.
+It’s useful when breaks are irregularly spaced.
+values = scales::rescale(breaks) : it helps align colors to unevenly spaced breaks correctly.
+it’s useful when breaks are irregularly spaced.
+```{r}
+
+breaks <- c(-1, -0.5, -0.2, -0.1, 0, 0.1, 0.2, 0.5, 1)
+country_borders <- ne_countries(scale = "medium", returnclass = "sf")
+
+p1 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_flue_july_2018) +
+  scale_fill_stepsn(
+  colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~fLUE[Jul-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) + 
+     scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+  theme(
+   legend.position = "bottom",
+   legend.key.size = unit(0.9, "cm"),
+   legend.text = element_text(size = 8),
+   axis.text = element_text(size = 12), 
+   axis.title = element_text(size = 12),
+   legend.title = element_text(size = 12),
+   legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p2 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_flue_aug_2018) +
+   scale_fill_stepsn(
+     colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+     breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~fLUE[Aug-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) + 
+  scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+   )
+
+p3 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_july_2018) +
+   scale_fill_stepsn(
+  colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI[Jul-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+  scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p4 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_aug_2018) +
+   scale_fill_stepsn(
+       colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI[Aug-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+     scale_x_continuous(breaks = seq(2, 17, by = 4)) + 
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p5 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_flue_july_2018 ) +
+   scale_fill_stepsn(
+    colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI-Delta~fLUE[Jul-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+  scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p6 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_flue_aug_2018) +
+   scale_fill_stepsn(
+   colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI-Delta~fLUE[Aug-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+     scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+# Print the combined plot
+combined <- p1 + p2 + p3 + p4 + p5 + p6 +
+  plot_layout(ncol = 2) + 
+  plot_annotation(
+    tag_levels = "a",
+     tag_prefix = "(",
+    tag_suffix = ")"
+    )
+
+#save figure 
+ggsave("/home/yousra/index_based_physiological_drought/fig/delta_flue_ndvi_2018_1.png", plot = combined, width = 9, height = 12, dpi =700)
+```
+
+
+#2020
+
+```{r}
+breaks <- c(-1, -0.5, -0.2, -0.1, 0, 0.1, 0.2, 0.5, 1)
+
+p1 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_flue_july_2020) +
+  scale_fill_stepsn(
+  colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~fLUE[Jul-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) + 
+     scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+  theme(
+   legend.position = "bottom",
+   legend.key.size = unit(0.9, "cm"),
+   legend.text = element_text(size = 8),
+   axis.text = element_text(size = 12), 
+   axis.title = element_text(size = 12),
+   legend.title = element_text(size = 12),
+   legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p2 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_flue_aug_2020) +
+   scale_fill_stepsn(
+     colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~fLUE[Aug-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) + 
+  scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+   )
+
+p3 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_july_2020) +
+   scale_fill_stepsn(
+  colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+    
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI[Jul-~Jun]),
+    na.value = "darkgrey"
+  ) +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+  scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), # Adjust size of axis text
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p4 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_aug_2020) +
+   scale_fill_stepsn(
+       colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI[Aug-~Jun]),
+    na.value = "darkgrey") +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+     scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p5 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_flue_july_2020 ) +
+   scale_fill_stepsn(
+    colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI-Delta~fLUE[Jul-~Jun]),
+    na.value = "darkgrey"
+  ) +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+  scale_x_continuous(breaks = seq(2, 17, by = 4)) + 
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+p6 <- ggplot() +
+  tidyterra::geom_spatraster(data = delta_rasters$delta_ndvi_flue_aug_2020) +
+   scale_fill_stepsn(
+   colours = c("#502000", "#B57114", "#CC8D1A", "#F2D98D", 
+                "#72F2EB", "#10ABB4", "#00939C", "#004C50"),
+   breaks = breaks,
+    values = scales::rescale(breaks),
+    limits = range(breaks),
+    name = expression(Delta~NDVI-Delta~fLUE[Aug-~Jun]),
+    na.value = "darkgrey"
+  ) +
+  geom_sf(data = country_borders, fill = NA, color = "black", size = 0.5) +
+  coord_sf(xlim = c(2, 17), ylim = c(45, 53), expand = FALSE) +  
+     scale_x_continuous(breaks = seq(2, 17, by = 4)) +  
+  scale_y_continuous(breaks = seq(45, 53, by = 2)) + 
+  theme_minimal()+
+   theme(
+    legend.position = "bottom",
+    legend.key.size = unit(0.9, "cm"),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 12), 
+    axis.title = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0)
+  )
+
+# Print the combined plot
+combined <- p1 + p2 + p3 + p4 + p5 + p6 +
+  plot_layout(ncol = 2) + 
+  plot_annotation(
+    tag_levels = "a",
+     tag_prefix = "(",
+    tag_suffix = ")"
+    )
+
+#save figure 
+ggsave("/home/yousra/index_based_physiological_drought/fig/delta_flue_ndvi_2020_2.png", plot = combined, width = 9, height = 12, dpi =700)
+
+```
+
+
+Difference of difference/ igbp 
+
+
+```{r}
+
+#read the land cover band
+land_cover <- list.files("data-raw/LC/", pattern = "MCD12Q1.*LC_Type1.*\\.tif$", full.names = TRUE)
+Cover_rast <- rast(land_cover)
+
+# read the class types and legend from the lookup CSV file 
+lookup <- read.csv("data-raw/LC/MCD12Q1-061-LC-Type1-Statistics.csv")
+
+landcover <- as.factor(Cover_rast)
+vegtype_mapping <- c(
+  ENF = 1,  # Evergreen Needleleaf Forest
+  EBF = 2,  # Evergreen Broadleaf Forest
+  DBF = 3,  # Deciduous Broadleaf Forest
+  MF  = 4,  # Mixed Forest
+  GRA = 5,  # Grassland
+  SAV = 6,  # Savanna
+  WSA = 7,  # Woody Savanna
+  WET = 8   # Wetland
+)
+
+rcl <- matrix(c(
+  1, 1,   # ENF
+  2, 2,   # EBF
+  4, 3,   # DBF
+  5, 4,   # MF
+  10, 5,  # GRA
+  9, 6,   # SAV
+  8, 7,   # WSA
+  11, 8   # WET
+), ncol = 2, byrow = TRUE)
+
+landcover <- classify(
+  Cover_rast,
+  rcl = rcl,
+  others = NA   # <— NA all other vegetation types automatically
+)
+
+vegtype_labels <- names(vegtype_mapping)
+
+levels(landcover) <- data.frame(
+  value = 1:8,
+  label = vegtype_labels
+)
+
+freq(landcover)
+
+
+```
+
+```{r}
+# Convert the raster to polygons
+land_cover_polygons <- as.polygons(landcover)
+
+# Extract values as a data frame
+avg_diff_jul_18 <- terra::extract(delta_rasters$delta_ndvi_flue_july_2018, land_cover_polygons, xy= TRUE)
+avg_diff_aug_18 <- terra::extract(delta_rasters$delta_ndvi_flue_aug_2018, land_cover_polygons, xy= TRUE)
+avg_diff_jul_20 <- terra::extract(delta_rasters$delta_ndvi_flue_july_2020, land_cover_polygons, xy= TRUE)
+avg_diff_aug_20 <- terra::extract(delta_rasters$delta_ndvi_flue_aug_2020, land_cover_polygons, xy= TRUE)
+
+#averaging
+
+average_jul_18 <- avg_diff_jul_18 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Jul_18 = mean(mean, na.rm = TRUE))
+
+average_jul_20 <- avg_diff_jul_20 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Jul_20 = mean(mean, na.rm = TRUE))
+
+average_aug_18 <- avg_diff_aug_18 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Aug_18 = mean(mean, na.rm = TRUE))
+
+average_aug_20 <- avg_diff_aug_20 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Aug_20 = mean(mean, na.rm = TRUE))
+
+#merge data
+# Perform sequential joins by the ID column
+merged_data <- average_jul_18 %>%
+  full_join(average_jul_20, by = "ID") %>%
+  full_join(average_aug_18, by = "ID") %>%
+  full_join(average_aug_20, by = "ID")
+
+levels(landcover)
+landcover_classes <- c("ENF", "EBF",
+                       "DBF","MF", "GRA","SAV",
+                       "WSA", "WET" )
+
+# Assign vegetation types to rows based on the ID
+merged_data$ID <- landcover_classes[merged_data$ID]
+
+```
+
+
+
+```{r}
+#plots
+reshaped_data <- merged_data %>%
+  pivot_longer(cols = c("Jul_18", "Aug_18", "Jul_20", "Aug_20"), 
+               names_to = "variable", 
+               values_to = "avg")
+
+reshaped_data$variable <- factor(reshaped_data$variable,
+  levels = c("Jul_18", "Aug_18", "Jul_20", "Aug_20")
+)
+p <- ggplot(data = reshaped_data, aes(x = factor(ID), y = avg, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    #title = "Average by Vegetation Type",
+    x = "",
+    y = "Mean of (ΔNDVI−ΔfLUE)",
+    fill = ""
+  ) +
+  scale_fill_manual(
+    values = c(
+  "Jul_18" = "#D08159",  
+  "Aug_18" = "#A65E44",  
+  "Jul_20" = "#6A9E8A",  
+  "Aug_20" = "#416A8C")
+  ) +
+  theme_bw(base_size = 11, base_rect_size = 0.8) +
+  theme(strip.text = element_blank(), 
+        legend.background = element_rect(fill = "white", color = "black", size = 0.5),
+        legend.title = element_blank(),
+    panel.grid.major = element_blank(),  # Removes major grid lines
+    panel.grid.minor = element_blank(),legend.position = c(0.99, 0.98), 
+        legend.justification = c(1, 1),
+         axis.text = element_text(size = 12), # Adjust size of axis text
+    axis.title = element_text(size = 12),)
+    
+  p
+  
+ggsave("manuscript/Version1/delta_ndvi_flue_igbp2.png", plot = p, width = 6, height = 4, dpi =700)
+
+```
+
+
+```{r}
+# Extract values as a data frame
+avg_flue_jul_18 <- terra::extract(delta_rasters$delta_flue_july_2018, land_cover_polygons,  xy= TRUE)
+avg_flue_aug_18 <- terra::extract(delta_rasters$delta_flue_aug_2018, land_cover_polygons, xy= TRUE)
+avg_flue_jul_20 <- terra::extract(delta_rasters$delta_flue_july_2020, land_cover_polygons, xy= TRUE)
+avg_flue_aug_20 <- terra::extract(delta_rasters$delta_flue_aug_2020, land_cover_polygons, xy= TRUE)
+
+#averaging
+flue_jul_18 <- avg_flue_jul_18 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Jul_18 = mean(lyr1, na.rm = TRUE))
+
+flue_jul_20 <- avg_flue_jul_20 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Jul_20 = mean(lyr1, na.rm = TRUE))
+
+flue_aug_18 <- avg_flue_aug_18 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Aug_18 = mean(lyr1, na.rm = TRUE))
+
+flue_aug_20 <- avg_flue_aug_20 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Aug_20 = mean(lyr1, na.rm = TRUE))
+
+#merge data
+# Perform sequential joins by the ID column
+merged_data <- flue_jul_18 %>%
+  full_join(flue_jul_20, by = "ID") %>%
+  full_join(flue_aug_18, by = "ID") %>%
+  full_join(flue_aug_20, by = "ID")
+
+# landcover_classes <- c("ENF", "EBF",
+#                        "DNF", "DBF","MF", 
+#                        "WSA", "SAV", "GRA")
+
+
+# Assign vegetation types to rows based on the ID
+merged_data$ID <- landcover_classes[merged_data$ID]
+
+```
+
+```{r}
+
+#plots
+reshaped_data <- merged_data %>%
+  pivot_longer(cols = c("Jul_18", "Aug_18", "Jul_20", "Aug_20"), 
+               names_to = "variable", 
+               values_to = "avg")
+
+reshaped_data$variable <- factor(reshaped_data$variable,
+  levels = c("Jul_18", "Aug_18", "Jul_20", "Aug_20")
+)
+
+p1 <- ggplot(data = reshaped_data, aes(x = factor(ID), y = avg, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    #title = "Average by Vegetation Type",
+    x = "",
+    y = "Mean of ΔfLUE",
+    fill = ""
+  ) +
+  scale_fill_manual(
+     values = c(
+        "Jul_18" = "#D08159",  
+  "Aug_18" = "#A65E44", 
+  "Jul_20" = "#6A9E8A",  
+  "Aug_20" = "#416A8C"   
+    )) +
+  theme_bw(base_size = 11, base_rect_size = 0.8) +
+  theme(strip.text = element_blank(), 
+          legend.title = element_blank(),
+        legend.background = element_rect(fill = "white", color = "black", size = 0.5),
+    panel.grid.major = element_blank(),  # Removes major grid lines
+    panel.grid.minor = element_blank(),legend.position = c(0.99, 0.30), 
+        legend.justification = c(1, 1),
+         axis.text = element_text(size = 12), # Adjust size of axis text
+    axis.title = element_text(size = 12))+
+    scale_y_continuous(limits = c(-0.125, 0.03), breaks = seq(-0.125, 0.03, by = 0.025))
+    
+  p1
+ggsave("manuscript/Version1/delta_flue_igbp2.png", plot = p1, width = 6, height = 4, dpi =700)
+
+
+```
+
+
+```{r}
+# Extract values as a data frame
+avg_ndvi_jul_18 <- terra::extract(delta_rasters$delta_ndvi_july_2018, land_cover_polygons, xy= TRUE)
+avg_ndvi_aug_18 <- terra::extract(delta_rasters$delta_flue_aug_2018, land_cover_polygons, xy= TRUE)
+avg_ndvi_jul_20 <- terra::extract(delta_rasters$delta_ndvi_july_2020, land_cover_polygons, xy= TRUE)
+avg_ndvi_aug_20 <- terra::extract(delta_rasters$delta_ndvi_aug_2020, land_cover_polygons, xy= TRUE)
+
+#averaging
+ndvi_jul_18 <- avg_ndvi_jul_18 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Jul_18 = mean(mean, na.rm = TRUE))
+
+ndvi_jul_20 <- avg_ndvi_jul_20 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Jul_20 = mean(mean, na.rm = TRUE))
+
+ndvi_aug_18 <- avg_ndvi_aug_18 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Aug_18 = mean(lyr1, na.rm = TRUE))
+
+ndvi_aug_20 <- avg_ndvi_aug_20 %>%
+  group_by(ID) %>%  # 'value' corresponds to the vegetation type (or land cover class)
+  summarise(Aug_20 = mean(mean, na.rm = TRUE))
+
+#merge data
+# Perform sequential joins by the ID column
+merged_data <- ndvi_jul_18 %>%
+  full_join(ndvi_jul_20, by = "ID") %>%
+  full_join(ndvi_aug_18, by = "ID") %>%
+  full_join(ndvi_aug_20, by = "ID")
+
+# Assign vegetation types to rows based on the ID
+merged_data$ID <- landcover_classes[merged_data$ID]
+
+```
+
+```{r}
+#plots
+reshaped_data <- merged_data %>%
+  pivot_longer(cols = c("Jul_18", "Aug_18", "Jul_20", "Aug_20"), 
+               names_to = "variable", 
+               values_to = "avg")
+
+reshaped_data$variable <- factor(reshaped_data$variable,
+  levels = c("Jul_18", "Aug_18", "Jul_20", "Aug_20")
+)
+
+p2 <- ggplot(data = reshaped_data, aes(x = factor(ID), y = avg, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    x = "",
+    xlim(-1, 0.025),
+    y = "Mean of ΔNDVI",
+    fill = ""
+  ) +
+  scale_fill_manual(
+     values = c(
+  "Jul_18" = "#D08159",  
+  "Aug_18" = "#A65E44",  
+  "Jul_20" = "#6A9E8A",  
+  "Aug_20" = "#416A8C"   
+    )
+  ) +
+  theme_bw(base_size = 11, base_rect_size = 0.8) +
+  theme(strip.text = element_blank(), 
+         legend.title = element_blank(),
+        legend.background = element_rect(fill = "white", color = "black", size = 0.5),
+    panel.grid.major = element_blank(),  # Removes major grid lines
+    panel.grid.minor = element_blank(),legend.position = c(0.99, 0.30), 
+        legend.justification = c(1, 1), 
+        axis.text = element_text(size = 12), # Adjust size of axis text
+    axis.title = element_text(size = 12)
+        )+
+   scale_y_continuous(limits = c(-0.125, 0.03), breaks = seq(-0.125, 0.03, by = 0.025))
+
+# ggsave("manuscript/delta_ndvi_igbp2.png", plot = p, width = 6, height = 4, dpi =700)
+
+combined<- p1 + p2 +p +
+  plot_layout(ncol = 1) + 
+  plot_annotation(
+    tag_levels = "a",
+    tag_prefix = "(",
+    tag_suffix = ")")
+
+ggsave("manuscript/Version1/Mean_by_igbp_dis3.png", plot = combined, width = 7, height = 14, dpi =700)
+
+```
+
+

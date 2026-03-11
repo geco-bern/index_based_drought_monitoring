@@ -1,0 +1,319 @@
+---
+title: "fLUE_vs_VIs"
+author: "Yousra"
+date: "2025-10-09"
+output: html_document
+---
+
+```{r}
+library(reactable)
+library(tidymodels)
+library(ranger)
+library(caret)
+library(reactable)
+library(readr)
+library(forcats)
+source(here::here("R/calc_VI.R"))
+source(here::here("R/index_flue.R"))
+
+
+```
+
+```{r setup, include=FALSE}
+
+model <- readRDS(here::here("data/model_rf.rds"))
+
+#new table indices 
+# Select the drought vegetation indices
+# Change formulas to match the satellite data 
+
+# vi <- read.csv(here::here("data/selected_spectral_indices_table.csv"))
+
+#change formulas 
+
+# Load the spectral indices file
+# # select the indices used for drought monitoring
+#select also NDWI
+#change application domain t vegetation 
+vi <- read_csv(here::here("data/spectral-indices-table.csv")) |>
+  filter(short_name %in% c("NDVI", "EVI", "ARVI", "SAVI", "GVMI", "NDDI", "NDGI", "GNDWI", "RVI", "MSI", "NDWI")) |>
+  select(short_name, formula, application_domain)|>
+  mutate(
+    application_domain = if_else(short_name == "NDWI", "vegetation", application_domain)
+  )
+
+#add new indices from literature
+new_indices <- tibble(
+  short_name = c("VSDI", "SIRR", "LSWI"),
+  formula = c("1 - ((S1 - B) + (R - B))", "S1/S2", "(N - S1) / (N + S1)"),
+  application_domain = c("vegetation", "vegetation", "vegetation"))
+#   # # Find and update the GRVI formula
+#   
+vi <- vi %>%
+  mutate(formula = ifelse(short_name == "RVI", "N / R", formula),
+         #formula = ifelse(short_name == "NDGI", "(N - G) / (N + G)", formula),
+         #formula = ifelse(short_name == "LSWI", "(N - S1) / (N + S1)", formula),
+         formula = ifelse(short_name == "ARVI", "(N - 2*R + B) / (N + 2*R - B)", formula))
+#          
+# #new data 
+vi <- bind_rows(vi, new_indices)
+# 
+write_csv(vi, here::here("data/selected_spectral_indices_table.csv"))
+
+
+
+df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+) |>
+  rename(
+    # NR_B1 = Nadir_Reflectance_Band1,
+    # NR_B2 = Nadir_Reflectance_Band2,
+    # NR_B3 = Nadir_Reflectance_Band3,
+    # NR_B4 = Nadir_Reflectance_Band4,
+    # NR_B5 = Nadir_Reflectance_Band5,
+    # NR_B6 = Nadir_Reflectance_Band6,
+    # NR_B7 = Nadir_Reflectance_Band7,
+    # LST = LST_Day_1km
+  ) |>
+  drop_na(
+    starts_with("NR_"),
+    starts_with("LST"),
+    ends_with("_era5")
+  )
+
+vi <- calc_VI(df, indices = here::here("data/selected_spectral_indices_table.csv"))
+df <- bind_cols(df, vi)
+
+preds <- model$pred
+preds$site <- df$site[preds$rowIndex]
+preds$date <- df$date[preds$rowIndex]
+colnames(preds)
+
+#check if preds flue obs value are same as df flue values 
+preds_filtered <- preds %>%
+  filter(site == "AR-Vir") %>%
+  select(site, date,obs, pred)
+
+#they are same>> merge datasets by date and site 
+
+# merge by site and date 
+#combined is dataset with ml dataframe only for preds rowindex 
+# plus vegetations indices calculated for these rows 
+combined <- dplyr::left_join(df,preds,
+                             by = c("site", "date"))
+
+
+
+#read in precompiled model
+model <- readRDS(
+  here::here("data/model_rf.rds")
+)
+
+# run the model on our test data
+# using predict()
+df1 <- combined|>
+  dplyr::select(obs,pred)
+
+# df <- data.frame(
+#   test,
+#   flue_predicted = test_results
+# )
+
+# ## regression metrics
+df1|>
+  yardstick::metrics(
+    truth = obs,
+    estimate = pred
+  ) |>
+  rename(
+    metric = .metric,
+    value  = .estimate
+  ) |>
+  dplyr::select(
+    metric,
+    value
+  ) |>
+  mutate(
+    value = round(value, 3)
+  ) |>
+  reactable::reactable()
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Comparing VI versus fLUE
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+
+df2 <- combined |>
+  dplyr::select(
+    -starts_with("NR"),
+    -starts_with("LST"),
+    - ends_with("_era5"),
+    -mtry, -splitrule, -rowIndex, -Resample, -min.node.size, -obs
+  )
+colnames(df2)
+
+max(df2$flue)
+max(df2$flue_predicted)
+max(df2$NDVI)
+
+df_long <- df2 |>
+  pivot_longer(
+    cols = 7:ncol(df2),
+    names_to = "index",
+    values_to = "value"
+  ) |>
+  filter(
+    !is.na(value),
+    !is.infinite(value)
+  )
+
+# rsq <- df_long |>
+#   group_by(cluster, index, site) |>
+#   do({
+#   
+#     rsq <- summary(lm(flue ~ value, data = .))$r.squared
+#     
+#     data.frame(rsq)
+#     
+#   }) |>
+#   mutate(
+#     flue = ifelse(index == "flue_predicted", TRUE, FALSE)
+#   )
+
+rsq <- df_long |>
+  group_by(cluster, index, site) |>
+  do({
+    rsq <- summary(lm(flue ~ value, data = .))$r.squared
+    data.frame(rsq)
+  }) |>
+  mutate(
+    flue = ifelse(index == "pred", "fLUE_predicted", "VI"),
+    index = ifelse(index == "pred", "fLUE_pred", index))|>
+  drop_na()
+
+```
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+
+# plot all validation graphs
+p <- ggplot(rsq) +
+  geom_boxplot(
+    aes(
+      cluster,
+      rsq,
+      fill = flue
+    )
+  ) +
+  theme_classic()
+
+p <- ggplot(rsq) +
+  geom_boxplot(
+    aes(
+      cluster,
+      rsq,
+      fill = flue
+    ),
+    color = "black", # Add black border around the boxes
+    # outlier.color = "red", # Customize outlier color
+    outlier.shape = 16 # Use a filled circle for outliers
+  ) +
+  scale_fill_manual(
+    values = c("fLUE_predicted" = "#E69F00", "VI" = "#999999" ) # Custom colors for flue and index
+  ) +
+  theme_bw(base_size = 18) + # Use a minimal theme with larger base font size
+  ylab("R²") +  # Adding y-axis label
+  xlab("Cluster") + # Adding x-axis label
+  theme(
+    legend.position = c(0.8, 0.8), 
+    legend.text = element_text(size=18),
+    panel.grid.major = element_blank(),  # Removes major grid lines
+    panel.grid.minor = element_blank(),
+    # Place legend inside the plot
+    # legend.background = element_rect(fill = "white", color = "black"), # Add a border to the legend
+    axis.text = element_text(color = "black", size = 16),
+    axis.text.y = element_text( size = 16),
+    axis.title.x = element_text(size= 16),
+    # axis.text.x = element_text(angle = 0, hjust = 0.5, size = 11)# Change axis text color to black
+    #axis.title = element_text(face = "bold") # Make axis titles bold
+  ) +
+  labs(fill = "")
+
+print(p)
+
+# ggsave("manuscript/flue_VI.png", plot = p, width = 8, height = 6, dpi =700)
+```
+
+
+Which one performs best?
+
+
+only cDD and cGR
+
+
+
+```{r}
+best_ind <- rsq |> 
+  filter(!cluster %in% c("cNA", "cLS")) |> 
+  group_by(index) |> 
+  summarise(rsq = median(rsq)) |> 
+  arrange(desc(rsq)) |> 
+  # dplyr::slice(1:10) |> 
+  pull(index)
+
+cluster_labels <- rsq |> 
+  filter(index %in% best_ind, !cluster %in% c("cNA", "cLS")) |> 
+  group_by(cluster) |> 
+  summarise(rsq = max(rsq) * 0.9) 
+
+
+# Create the plot
+p1 <- rsq |> 
+  filter(index %in% best_ind, !cluster %in% c("cNA", "cLS"))|> 
+  mutate(index = fct_reorder(index, rsq, .fun = "mean")) |> 
+  ggplot(aes(x = reorder(index, desc(rsq)), y = rsq, fill = flue)) +
+  
+  # Boxplot with custom colors
+  geom_boxplot(color = "black", outlier.color = "black", outlier.shape = 16) +
+  geom_jitter(position = position_jitter(width = 0.2, height = 0), 
+              size = 3, alpha = 0.5, color = "black") +
+  
+  # Facet wrap for clusters
+  facet_wrap(~cluster, nrow = 10) +
+  # scale_fill_viridis_d(option = "plasma") +
+  scale_fill_manual(values = c("fLUE_predicted" = "#B57114", "VI" = "#706513")) +  
+  
+  # Background shading for the first facet
+  theme_bw(base_size = 14, base_rect_size = 0.8) +
+  theme(
+    strip.text = element_blank(), 
+    panel.grid.major = element_blank(),  # Removes major grid lines
+    panel.grid.minor = element_blank(), 
+    axis.text = element_text(color = "black", size = 14),# Removes minor grid line# Remove facet titles
+    axis.text.x = element_text(angle = 0, hjust = 0.5, size = 13), 
+    axis.text.y = element_text( size = 16),
+    axis.title.x = element_text(size= 14), 
+    axis.title.y = element_text(size= 20),# Rotate x-axis labels
+    legend.position = "none" # Remove legend
+  ) +
+  
+  # Add cluster labels inside the plot using a separate dataset
+  geom_text(data = cluster_labels, 
+            aes(x = 12, y = 0.8, label = cluster), # Adjust x-position for readability
+            inherit.aes = FALSE, 
+            color = "black", size = 7, fontface = "bold") +
+  
+  # Labels
+  labs(x = NULL, y = "R²")   
+
+print(p1)
+
+
+ggsave("fig/flue_VI_cdd_cgr.png", width =11, height = 12 , dpi =700)
+
+```
+
+

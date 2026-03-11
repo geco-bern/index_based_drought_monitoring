@@ -11,6 +11,10 @@ This project addresses the first (1) component of this issue by using the whole 
 
 The analysis was limited to locations where soil droughts could be quantified based upon ecosystem fluxes as described in Stocker et al. (2018, 2019). Sites are limited to those as listed in this publication, further limited to those with a relatively homogeneous vegetation.
 
+## Notes
+
+Model fitting was done with `analysis/03beni_regression_training_LSO_caret.R`
+
 ## GEE install
 
 https://developers.google.com/earth-engine/guides/python_install-conda
