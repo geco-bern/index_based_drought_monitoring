@@ -1,0 +1,272 @@
+---
+title: "temporal evolution"
+author: "Yousra"
+date: "2025-01-29"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidymodels)
+library(xgboost)
+library(ranger)
+library(caret)
+library(dplyr)
+library(reactable)
+library(patchwork)
+source(here::here("R/calc_VI.R"))
+source(here::here("R/index_flue.R"))
+```
+
+```{r}
+
+df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+  ) |>
+  drop_na(
+    starts_with("NR_"),
+    starts_with("LST"),
+    ends_with("_era5")
+  )
+
+vi <- calc_VI(df, indices = here::here("data/selected_spectral_indices_table.csv"))
+df <- bind_cols(df, vi)
+
+preds <- model$pred
+preds$site <- df$site[preds$rowIndex]
+preds$date <- df$date[preds$rowIndex]
+colnames(preds)
+
+#check if preds flue obs value are same as df flue values 
+preds_filtered <- preds %>%
+  filter(site == "AR-Vir") %>%
+  select(site, date,obs, pred)
+
+#they are same>> merge datasets by date and site 
+
+# merge by site and date 
+#combined is dataset with ml dataframe only for preds rowindex 
+# plus vegetations indices calculated for these rows 
+combined <- dplyr::left_join(df,preds,
+                             by = c("site", "date"))
+df1 <- combined |>
+  dplyr::select(
+    -starts_with("NR"),
+    -starts_with("LST"),
+    - ends_with("_era5"),
+    -mtry, -splitrule, -rowIndex, -Resample, -min.node.size, -obs
+  )|>
+  drop_na(ends_with("pred"))
+
+ml_df <- df1
+
+VI <- "NDVI"
+
+```
+
+
+
+```{r}
+ml_df$vegtype <- paste(ml_df$site, ml_df$vegtype, sep = "_")
+
+ml_df <- index_flue(ml_df)
+head(ml_df)
+
+df2 <- ml_df |>
+  filter(
+    (n > -20 & n < 100),
+    cluster %in% c("cDD", "cGR"))|>
+  rename(flue_predicted = pred) |>
+  dplyr::select(
+    vegtype,
+    cluster,
+    site,
+    n,
+    flue,
+    flue_predicted,
+    !!VI
+  ) 
+
+max(df2$flue)
+max(df2$flue_predicted)
+max(df2$NDVI)
+summary(df2$flue_predicted)
+summary(df2$flue)
+summary(df2$NDVI)
+
+df3 <- df2 %>%
+  filter(n >= -20 & n < 0) %>%
+  group_by(vegtype, cluster) %>%
+  summarize(
+    EVI_median_pre = median(!!sym(VI), na.rm = TRUE),
+    flue_pred_median_pre = median(flue_predicted, na.rm = TRUE),
+    flue_median_pre = median(flue, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+df4 <- df3 %>%
+  right_join(df2, by = c("vegtype", "cluster")) %>%
+  group_by(vegtype, cluster, n) %>%
+  mutate(
+    EVI_norm =  !!sym(VI) / EVI_median_pre,
+    flue_norm = flue / flue_median_pre,
+    flue_pred_norm = flue_predicted / flue_pred_median_pre
+  ) %>%
+  ungroup()
+
+# Join the median values back to the main dataframe and normalize
+# df4 <- df3 %>%
+#   right_join(df2, by = c("vegtype", "cluster")) %>%
+#   group_by( vegtype, cluster) %>%
+#   mutate(
+#     EVI_norm =  !!sym(VI) / EVI_median_pre,
+#     flue_norm = flue / flue_median_pre,
+#     flue_pred_norm = flue_predicted/ flue_pred_median_pre
+#   ) %>%
+#   ungroup()
+
+
+df5 <- df4 |>
+  group_by(vegtype, cluster,n) %>%
+  summarize(
+    nNDVI = median(EVI_norm, na.rm = TRUE),
+    nfLUE= median(flue_norm, na.rm = TRUE),
+     # flue_norm = median(flue),
+    # flue_pred_norm = median(flue_predicted, na.rm = TRUE),
+    nfLUE_pred = median(flue_pred_norm, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+# VI <- "NDVI"   
+# 
+# ml_df$vegtype <- paste(ml_df$site, ml_df$vegtype, sep = "_")
+# ml_df <- index_flue(ml_df)
+# 
+# df2 <- ml_df %>%
+#   filter(n > -20 & n < 100,
+#          cluster %in% c("cDD", "cGR")) %>%
+#   rename(flue_predicted = pred) %>%
+#   select(vegtype, cluster, site, n, flue, flue_predicted, !!sym(VI))
+# 
+# # Compute pre-drought medians
+# df3 <- df2 %>%
+#   filter(n >= -20 & n < 0) %>%
+#   group_by(vegtype, cluster) %>%
+#   summarize(
+#     VI_median_pre = median(!!sym(VI), na.rm = TRUE),
+#     flue_pred_median_pre = median(flue_predicted, na.rm = TRUE),
+#     flue_median_pre = median(flue, na.rm = TRUE),
+#     .groups = "drop"
+#   )
+# 
+# # Join and normalize
+# df4 <- df3 %>%
+#   right_join(df2, by = c("vegtype", "cluster")) %>%
+#   group_by(vegtype, cluster) %>%
+#   mutate(
+#     VI_norm = !!sym(VI) / VI_median_pre,
+#     flue_norm = flue / flue_median_pre,
+#     flue_pred_norm = flue_predicted / flue_pred_median_pre
+#   ) %>%
+#   ungroup()
+# 
+# # Summarize medians over time
+# df5 <- df4 %>%
+#   group_by(vegtype, cluster, n) %>%
+#   summarize(
+#     !!paste0("n", VI) := median(VI_norm, na.rm = TRUE),
+#     nfLUE = median(flue_norm, na.rm = TRUE),
+#     nfLUE_pred = median(flue_pred_norm, na.rm = TRUE),
+#     .groups = "drop"
+#   )
+
+
+```
+
+```{r}
+
+summary(df5$nfLUE_pred)
+summary(df5$nfLUE)
+
+summary(df5$nNDVI)
+colnames(df5)
+
+df5_cDD <- df5 %>%
+  filter(cluster == "cDD") %>%
+  gather(key = "metric", value = "value", nNDVI, nfLUE, nfLUE_pred)
+
+# Plot
+p <- ggplot(df5_cDD) +
+  geom_rect(xmin = 0, xmax = 100, ymin = -Inf, ymax = Inf, 
+            fill = "lightgray", alpha = 0.1) +
+  geom_line(aes(x = n, y = value, color = metric), show.legend = TRUE) +  # No legend for cluster
+  labs(title = "cDD",
+    x = "Day after drought onset",
+    y = "Unitless",
+    color = "Metric"  # Label the color legend
+  ) +
+  theme_classic() +
+  scale_color_manual(values = c("nNDVI" = "#025939", "nfLUE" = "black" , "nfLUE_pred" =  "#B57114")) +
+  # scale_color_viridis_d(option = "magma") +
+  theme(legend.position = c(0.9, 0.15),
+        legend.title = element_blank(),
+        panel.grid.major = element_blank(),  # Removes major grid lines
+        panel.grid.minor = element_blank()) +
+  facet_wrap(~ vegtype) +  # Facet by site
+  geom_vline(xintercept = 0, linetype = "dashed", color = "lightgray") +  # Dashed line at drought onset
+  scale_x_continuous(breaks = seq(-20, 100, by = 20)) +
+  scale_y_continuous(breaks = seq(0, 1.2, by = 0.2))
+
+# Print the plot
+print(p)
+
+ggsave("manuscript/Version1/temporal_evolution_CDD_site_igbp_NDVI_1.png",width = 8, height = 5, dpi =700)
+
+df5_cGR <- df5 %>%
+  filter(cluster == "cGR") %>%
+  gather(key = "metric", value = "value", nNDVI, nfLUE, nfLUE_pred)
+
+p1 <- ggplot(df5_cGR) +
+  geom_rect(xmin = 0, xmax = 100, ymin = -Inf, ymax = Inf, 
+            fill = "lightgray", alpha = 0.1) +
+  geom_line(aes(x = n, y = value, color = metric), show.legend = FALSE ) +  # No legend for cluster
+  labs(title = "cGR",
+    x = "Day after drought onset",
+    y = "Unitless",
+    color = "Metric"  # Label the color legend
+  ) +
+  theme_classic() +
+  # scale_color_viridis_d(option = "plasma") +
+  scale_color_manual(values = c("nNDVI" = "#025939", "nfLUE" = "black" , "nfLUE_pred" ="#B57114")) +
+  theme(#legend.position = c(0.9, 0.1),
+        legend.title = element_blank(),
+        panel.grid.major = element_blank(),  # Removes major grid lines
+        panel.grid.minor = element_blank()) +
+  facet_wrap(~ vegtype) +  # Facet by site
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +  # Dashed line at drought onset
+  scale_x_continuous(breaks = seq(-20, 100, by = 20)) +
+  scale_y_continuous(breaks = seq(0, 1.2, by = 0.2))
+
+# Print the plot
+print(p1)
+
+combined <- p1 +p +
+  plot_layout(ncol = 1) + 
+  plot_annotation(
+  )
+
+ggsave("fig/temporal_evolution_test1.png",width = 8, height = 12, dpi =700)
+
+ggsave("manuscript/Version1/temporal_evolution_cGR_site_igbp_NDVI.png",width = 8, height = 12, dpi =700)
+
+
+
+
+```
+
+

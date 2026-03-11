@@ -114,7 +114,8 @@ saveRDS(model, file = here("data/model_rf.rds"))
 
 # inspect out-of-sample validation results visually
 model <- readRDS(file = here("data/model_rf.rds"))
-preds <- model$pred
+preds <- model$pred |>
+  as_tibble()
 preds$site <- df$site[preds$rowIndex]
 
 write_csv(preds, file = here("data/preds_rf.csv"))

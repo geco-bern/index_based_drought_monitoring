@@ -13,11 +13,11 @@ set.seed(0)
 
 # read in precompiled model
 regression_model <- readRDS(
-  here::here("data/regression_model.rds")
+  here::here("data/model_rf.rds")
 )
 
 files <- data.frame(
-  file = list.files("data-raw/modis_data_spatial/","*.tif", full.names = TRUE)
+  file = list.files("data-raw/modis_data_spatial/", "*.tif", full.names = TRUE)
 )
 
 doys <- 180:300
@@ -60,7 +60,7 @@ lapply(doys, function(doy){
     returnclass = "sf"
   ) |>
     dplyr::filter(
-      sovereignt %in%  c("Switzerland","Germany","Austria")
+      sovereignt %in%  c("Switzerland", "Germany", "Austria")
     ) |>
     sf::st_union() |>
     sf::st_as_sf()
