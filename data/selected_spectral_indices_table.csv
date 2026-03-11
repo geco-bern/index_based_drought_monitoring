@@ -1,0 +1,14 @@
+short_name,formula,application_domain
+ARVI,(N - 2*R + B) / (N + 2*R - B),vegetation
+EVI,g * (N - R) / (N + C1 * R - C2 * B + L),vegetation
+GVMI,((N + 0.1) - (S2 + 0.02)) / ((N + 0.1) + (S2 + 0.02)),vegetation
+MSI,S1/N,vegetation
+NDDI,(((N - R)/(N + R)) - ((G - N)/(G + N)))/(((N - R)/(N + R)) + ((G - N)/(G + N))),vegetation
+NDGI,(((lambdaN - lambdaR)/(lambdaN - lambdaG)) * G + (1.0 - ((lambdaN - lambdaR)/(lambdaN - lambdaG))) * N - R)/(((lambdaN - lambdaR)/(lambdaN - lambdaG)) * G + (1.0 - ((lambdaN - lambdaR)/(lambdaN - lambdaG))) * N + R),vegetation
+NDVI,(N - R)/(N + R),vegetation
+NDWI,(G - N) / (G + N),vegetation
+RVI,N / R,vegetation
+SAVI,(1.0 + L) * (N - R) / (N + R + L),vegetation
+VSDI,1 - ((S1 - B) + (R - B)),vegetation
+SIRR,S1/S2,vegetation
+LSWI,(N - S1) / (N + S1),vegetation
